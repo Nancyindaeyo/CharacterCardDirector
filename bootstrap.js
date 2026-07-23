@@ -16,6 +16,7 @@ function getExtensionFolder() {
 const EXT_FOLDER = getExtensionFolder();
 const EXT_NAME = '世界书Swipe与QR切换';
 const CLEANUP_KEY = '__wbSwipeQrCleanup';
+const INIT_DONE_KEY = '__wbSwipeQrInitDone';
 const MAX_ATTEMPTS = 60;
 const RETRY_MS = 500;
 
@@ -121,18 +122,28 @@ function cleanupExtensionDom() {
     }
   }
   delete window[CLEANUP_KEY];
+  delete window[INIT_DONE_KEY];
 }
 
+let loading = false;
+
 async function loadAndInit() {
-  installThGlobalsOnWindow();
-  const mod = await import(`./index.js`);
-  if (typeof mod.installTavernHelperGlobals === 'function') {
-    mod.installTavernHelperGlobals();
+  if (window[INIT_DONE_KEY] || loading) return;
+  loading = true;
+  try {
+    installThGlobalsOnWindow();
+    const mod = await import(`./index.js`);
+    if (typeof mod.installTavernHelperGlobals === 'function') {
+      mod.installTavernHelperGlobals();
+    }
+    if (typeof mod.initWorldbookSwipeQr !== 'function') {
+      throw new Error('index.js 缺少 initWorldbookSwipeQr');
+    }
+    mod.initWorldbookSwipeQr({ extensionId: EXT_FOLDER });
+    window[INIT_DONE_KEY] = true;
+  } finally {
+    loading = false;
   }
-  if (typeof mod.initWorldbookSwipeQr !== 'function') {
-    throw new Error('index.js 缺少 initWorldbookSwipeQr');
-  }
-  mod.initWorldbookSwipeQr({ extensionId: EXT_FOLDER });
 }
 
 function onTavernHelperReady() {
@@ -166,6 +177,7 @@ export async function onEnable() {
   waitForTavernHelper();
 }
 
+// onEnable + 首次加载时 jQuery ready 均可能触发；loadAndInit 内去重
 jQuery(() => {
   waitForTavernHelper();
 });
