@@ -1,0 +1,16 @@
+{
+  "display_name": "世界书Swipe与QR切换",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "js": "bootstrap.js",
+  "author": "Nancyindaeyo",
+  "version": "1.0.0",
+  "homePage": "https://github.com/Nancyindaeyo/WorldbookSwipeQrSwitch",
+  "auto_update": true,
+  "hooks": {
+    "delete": "onDelete",
+    "disable": "onDisable",
+    "enable": "onEnable"
+  }
+}

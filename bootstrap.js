@@ -1,0 +1,171 @@
+/** @typedef {import('@types/function/script').Script} Script */
+/** @typedef {import('@types/function/script').ScriptTree} ScriptTree */
+
+function getExtensionFolder() {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.url) {
+      const match = import.meta.url.match(/\/third-party\/([^/]+)\//);
+      if (match) return match[1];
+    }
+  } catch {
+    /* ignore */
+  }
+  return 'WorldbookSwipeQrSwitch';
+}
+
+const EXT_FOLDER = getExtensionFolder();
+const EXT_NAME = '世界书Swipe与QR切换';
+const CLEANUP_KEY = '__wbSwipeQrCleanup';
+const MAX_ATTEMPTS = 60;
+const RETRY_MS = 500;
+
+/** @returns {Record<string, Function> | null} */
+function getTavernHelper() {
+  const th = window.TavernHelper;
+  if (!th || typeof th !== 'object') return null;
+  return th;
+}
+
+function getThFn(name) {
+  const th = getTavernHelper();
+  if (th && typeof th[name] === 'function') return th[name].bind(th);
+  const globalFn = window[name];
+  if (typeof globalFn === 'function') return globalFn;
+  return null;
+}
+
+function isTavernHelperReady() {
+  return typeof getThFn('getVariables') === 'function';
+}
+
+function installThGlobalsOnWindow() {
+  const w = window;
+  const th = w.TavernHelper;
+  if (!th || typeof th !== 'object') return false;
+
+  const CORE = [
+    'getVariables',
+    'insertOrAssignVariables',
+    'replaceVariables',
+    'getWorldbook',
+    'updateWorldbookWith',
+    'getCharWorldbookNames',
+    'getChatMessages',
+    'setChatMessages',
+    'getCurrentCharacterName',
+    'getCharData',
+    'getCharacter',
+    'updateCharacterWith',
+    'triggerSlash',
+  ];
+
+  for (const name of CORE) {
+    const val = th[name];
+    if (typeof val === 'function' && typeof w[name] !== 'function') {
+      w[name] = val.bind(th);
+    }
+  }
+
+  for (const key of Object.keys(th)) {
+    const val = th[key];
+    if (typeof val !== 'function') continue;
+    if (typeof w[key] === 'function') continue;
+    w[key] = val.bind(th);
+  }
+
+  const findSt = () => {
+    for (const win of [w, w.parent, w.top].filter(Boolean)) {
+      try {
+        if (win?.SillyTavern) return win.SillyTavern;
+      } catch {
+        /* ignore */
+      }
+    }
+    return w.SillyTavern;
+  };
+
+  const st = findSt();
+  if (st?.eventSource) {
+    const es = st.eventSource;
+    const pairs = [
+      ['eventOn', 'on'],
+      ['eventOnce', 'once'],
+      ['eventClearEvent', 'removeListener'],
+      ['eventEmit', 'emit'],
+    ];
+    for (const [globalName, sourceName] of pairs) {
+      const fn = es[sourceName];
+      if (typeof fn === 'function' && typeof w[globalName] !== 'function') {
+        w[globalName] = fn.bind(es);
+      }
+    }
+  }
+  if (st?.eventTypes && w.tavern_events == null) {
+    w.tavern_events = st.eventTypes;
+  }
+
+  return CORE.every(name => typeof w[name] === 'function');
+}
+
+function cleanupExtensionDom() {
+  jQuery(
+    '#wb-sq-modal, #wb-sq-style, #wb-sq-ext-menu-btn, #wb-sq-prefix-bar, .wb-sq-prefix-bar, .wb-sq-mes-btn',
+  ).remove();
+
+  const cleanup = window[CLEANUP_KEY];
+  if (typeof cleanup === 'function') {
+    try {
+      cleanup();
+    } catch (e) {
+      console.warn('[世界书Swipe与QR] cleanup 失败', e);
+    }
+  }
+  delete window[CLEANUP_KEY];
+}
+
+async function loadAndInit() {
+  installThGlobalsOnWindow();
+  const mod = await import(`./index.js`);
+  if (typeof mod.installTavernHelperGlobals === 'function') {
+    mod.installTavernHelperGlobals();
+  }
+  if (typeof mod.initWorldbookSwipeQr !== 'function') {
+    throw new Error('index.js 缺少 initWorldbookSwipeQr');
+  }
+  mod.initWorldbookSwipeQr({ extensionId: EXT_FOLDER });
+}
+
+function onTavernHelperReady() {
+  loadAndInit().catch(e => {
+    console.error('[世界书Swipe与QR] 加载失败', e);
+    toastr.error('世界书 Swipe 与 QR 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
+  });
+}
+
+function waitForTavernHelper(attempt = 0) {
+  if (isTavernHelperReady()) {
+    onTavernHelperReady();
+    return;
+  }
+  if (attempt >= MAX_ATTEMPTS) {
+    toastr.warning('未检测到酒馆助手接口。请安装并启用「酒馆助手 (JS-Slash-Runner)」后刷新。', EXT_NAME);
+    return;
+  }
+  setTimeout(() => waitForTavernHelper(attempt + 1), RETRY_MS);
+}
+
+export async function onDelete() {
+  cleanupExtensionDom();
+}
+
+export async function onDisable() {
+  cleanupExtensionDom();
+}
+
+export async function onEnable() {
+  waitForTavernHelper();
+}
+
+jQuery(() => {
+  waitForTavernHelper();
+});
