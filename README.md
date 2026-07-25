@@ -1,356 +1,250 @@
-# WorldbookDirector
+# WorldbookDirector（世界书编排器）
 
-> **形态**：SillyTavern **拓展**（非酒馆助手脚本）  
-> **发布目录**：[`WorldbookDirector/`](../../WorldbookDirector/)  
-> **GitHub 安装**：`https://github.com/Nancyindaeyo/WorldbookDirector`
+SillyTavern 拓展：按**开场白 Swipe** 自动开合 primary 世界书条目；用**脚本按钮 / QR** 中途切换分组；支持 **MVU 条件绑定**与 **EJS 分阶段**；配置可写入角色卡，分享 PNG/JSON 后对方可不装本拓展也能用。
 
 ---
 
-## 安装（用户）
+## 安装
 
-1. 安装 [酒馆助手 JS-Slash-Runner](https://github.com/n0vi028/JS-Slash-Runner) 4.8.19+
-2. SillyTavern → **扩展** → **Install Extension** → 粘贴上方 GitHub 地址
-3. 刷新并启用 **世界书编排器**
+### 前提
 
-拓展 **不会** 出现在酒馆助手脚本树中，无需手动挂载脚本。
+请先安装 [酒馆助手 (JS-Slash-Runner)](https://github.com/n0vi028/JS-Slash-Runner)，版本 **4.8.19+**。
+
+### 扩展管理器安装（推荐）
+
+1. SillyTavern → **扩展** → **Install Extension**
+2. 粘贴：`https://github.com/Nancyindaeyo/WorldbookDirector`
+3. 刷新页面 → 左下角魔术棒启用 **世界书编排器**
+
 
 ---
 
-## 开发 / 发版（维护者）
+## 打开面板
 
-```bash
-# 生产 bundle → WorldbookDirector/index.js
-pnpm build:worldbook-director
+| 入口 | 说明 |
+|------|------|
+| 扩展菜单 | **世界书编排器** |
+| 0 楼消息旁按钮 | swipe跳转 |
 
-# 开发 bundle（含 source map）
-pnpm build:worldbook-director:dev
+面板有四个 Tab：**Swipe 绑定**、**抓取 / 分组**、**条件绑定**、**阶段 / 变量**。
+
+---
+
+## 重要：配置怎么保存
+
+**不会自动写回角色卡。** 编辑只存在本地拓展变量里，必须手动点：
+
+| 按钮 | 作用 |
+|------|------|
+| **导出到角色卡** | 写入 `character.extensions` + 生成/覆盖独立脚本 |
+| **保存配置**（Swipe Tab） | 同上，并同步当前 Swipe 勾选 |
+| **同步分组到脚本/QR**（抓取 Tab） | 写入角色卡并更新分组按钮 |
+| **保存规则**（条件 Tab） | 保存该条条件（全角色卡范围会写角色卡） |
+| **保存到世界书条目**（阶段 Tab） | 将阶段阈值 / EJS / overview 写回世界书 |
+| **保存到 initvar / 最新楼层**（阶段 Tab） | 编辑变量数值 |
+| **从角色卡加载** | 用角色卡里的配置**覆盖**本地（丢弃未导出的本地修改） |
+
+分享角色卡 PNG/JSON 前，请先 **导出到角色卡** 或 **同步分组**。
+
+对方不装本拓展时：角色卡上会有独立脚本「世界书前缀按钮」（Swipe + 分组按钮）；若有全角色卡条件，还有「世界书条件绑定」（需 MVU）。
+
+---
+
+## 功能说明
+
+### 1. Swipe 绑定（开场白 ↔ 世界书）
+
+切换 0 楼开场白 Swipe 时，自动按该 Swipe 的配置开合世界书条目。
+
+**怎么配：**
+
+1. 打开面板 → **Swipe 绑定**
+2. 展开某个 Swipe → 勾选「切到这个开场白时要开启」的条目
+   - 可跨前缀混选（例如现代_ 勾 2 条 + 古代_ 勾 1 条）
+   - 可同前缀只勾一部分
+3. 可用上方「勾选前缀…」批量勾选某一前缀下全部条目
+4. 点 **预览条目** 看「目标开启 / 将开启 / 将关闭」
+5. 点 **保存配置** 写入角色卡
+
+**一键开/关：**
+
+- 先勾选若干条目，再点 **一键开/关**
+- 当前为「开」的会关掉，为「关」的会打开，立刻写入世界书
+- 勾选会清空（只改世界书开合，不等同于保存 Swipe 绑定）
+
+**其它操作（每张 Swipe 卡片）：**
+
+| 操作 | 说明 |
+|------|------|
+| 跳转 | 切到该 Swipe，并按绑定开合世界书 |
+| 预览条目 / 确认应用 | 预览差量后手动应用 |
+| 复制 / 删除 / Branch | 管理开场白文本与分支 |
+| 开场白 ↔ 最新楼 | 把 Swipe 文本插入最新楼，或把最新楼写入开场白 |
+| 调整顺序 | 移动 Swipe 索引（绑定会跟着重排） |
+
+**从旧脚本迁移：**
+若角色卡上还有旧版「基于前缀 / `SWIPE_PREFIX_RULES`」脚本，面板可 **从旧脚本迁移**。迁移后请关掉旧脚本，避免双重开合。
+
+---
+
+### 2. 抓取 / 分组（QR / 脚本按钮）
+
+把世界书条目分成若干**组**，组名 = 脚本按钮名 / QR 名，点击后按策略开合对应条目。
+
+#### 2.1 抓取模式
+
+| 模式 | 匹配方式 | 列表示例 |
+|------|----------|----------|
+| **前缀匹配** | 条目名以该字符串开头 | `现代_, 古代_, 西幻_` → `现代_人设` 归入 `现代_` |
+| **提取关键词** | 条目名**任意位置**包含该词 | 关键词 `人设` → `xxx人设xxxx` / `人设xxxx` / `xxxxx_人设` 都归入「人设」 |
+
+- 列表用逗号分隔；按长度优先匹配（更长的优先）
+- **从条目名推导 / 拆词**：从前缀或 `_` 分段自动生成候选，再自行删减
+- 右侧 **实时扫描** 显示每组命中哪些条目、未匹配有哪些
+
+#### 2.2 自定义分组
+
+1. **添加分组** → 填写组名（= 按钮/QR 名）
+2. **勾选条目** → 手动指定本组包含哪些 UID
+3. 自定义组优先于前缀/提取匹配
+
+编辑过程只存本地；配完后点 **同步分组到脚本/QR**。
+
+#### 2.3 QR / 按钮开合策略
+
+默认：点一个组 → **关掉其它组**（全部互斥），再点同一组可关闭。
+
+可自定义：
+
+| 设置 | 含义 |
+|------|------|
+| **常态开启** | 勾选的组在点其它组时**不会被关掉**（仍可再点自己关掉） |
+| **互斥集合** | 每行一组、组内逗号分隔。只在**同一行**内互斥；不同行互不影响 |
+
+示例：
+
+```text
+现代_, 古代_
+人设, 文风
 ```
 
-发版前提交 `WorldbookDirector/index.js` 到 GitHub 发布仓库。
+- 点「现代_」只关「古代_」，不影响「人设」「文风」
+- 点「人设」只关「文风」
+- 若某组勾了「常态开启」，点互斥同伴时也不会关它
 
-本地调试：可将 `WorldbookDirector/` 软链或复制到 ST 的 `data/default-user/extensions/third-party/WorldbookDirector/`。
+互斥集合留空 = 仍使用「全部非常态组互斥」的旧行为。
 
----
+改完后务必 **同步分组到脚本/QR**。
 
-## 功能概要（已实现）
+#### 2.4 按钮出现在哪
 
-| 模块 | 说明 |
-|------|------|
-| Swipe 绑定 | 0 楼 Swipe 互斥切换 primary 世界书条目（仅开局阶段） |
-| 前缀栏 | 输入框上方横向 chips 中途切换（替代脚本库按钮） |
-| 可视化面板 | Swipe 绑定 / 抓取扫描 / 条件绑定 |
-| MVU 条件绑定 | 变量达标时开/关条目；监听 `VARIABLE_UPDATE_ENDED`；支持全角色卡 / 仅该聊天 |
-| 设为开场白 | 消息楼层按钮，支持多 Swipe 变体追加 |
-| 导出 | 写入 `character.extensions.worldbook_swipe_qr_switch` + 独立脚本 |
-| **阶段 / 变量 Tab** | 扫描 EJS 分阶段、填值试阶段、改 overview/EJS、新增蓝灯条目、编辑 initvar/stat_data |
-| **条件冲突** | 多规则同 UID 按 priority 合并；宿主分阶段条目不参与竞争 |
-| **表达式扩展** | `hasKey` / `len` / `stageOf`；规则运算符 exists / between / contains / 字段间 `@` 比较 |
+同步/导出后，角色卡脚本会注册按钮（酒馆助手 `replaceScriptButtons`），一般出现在脚本按钮栏 / QR 旁。
+也可在 QR 里调用（若环境已暴露）：
 
-配置存储在 **拓展变量**（`type: 'extension'`），按角色卡名分键。
-
----
-
-## 待实现需求（已确认 · vNext）
-
-以下为用户确认的可做项，按模块归纳。实现时以本表为验收清单。
-
-### 一、条件绑定增强
-
-| # | 需求 | 说明 |
-|---|------|------|
-| **1** | **实时诊断** | 每条规则旁显示当前 `getStat` 值、是否满足；保存时保留命中/跳过报告；阶段梯子显示「当前阶段名 + 距下一阈值差值」 |
-| **2** | **触发时机** | 支持三种模式（见下「触发时机 UI 文案」）；边沿触发需 `VARIABLE_UPDATE_ENDED` 的 `old_variables` + 聊天变量记上一帧 |
-| **5** | **优先级与冲突** | 多规则命中同一 UID 时：优先级字段、面板标红冲突；**宿主分阶段条目不参与竞争** | ✅ Phase 4 |
-| **9** | **表达式 API** | `getStatOld`、`delta`；`stageOf`；`hasKey` / `len`；高级表达式 `new Function` | ✅ Phase 5（`stageCrossed` 待后续） |
-| **10** | **嵌套结构条件** | 可视化：`exists` / `between` / `contains` / `@字段` 比较 | ✅ Phase 5 核心 |
-| **11** | **条件 / 阶段模板库** | 内置：好感五档、030 分阶段骨架、布尔 flag 开条目；可一键填入条件或阶段梯子 |
-| **12** | **轮询兜底** | 拓展本体：有阶段梯子或条件规则时，MVU 事件之外轻量轮询（仅比较 stage index / 条件哈希，变化才刷新） |
-| **15** | **Schema 校验** | 规则/阶段阈值与 Zod schema 的 min/max/enum 对齐；字段消失或阈值缺口时警告 |
-
-### 二、阶段梯子（Stage Ladder · 新一等公民）
-
-与「条目开关」并列，专门对接写卡常见的 **单条目 EJS 分阶段**（参考 `写卡/zod/030-🔧 MVU-4.1.分阶段角色设定.txt`）。
-
-**范式对比**
-
-| | 分阶段模板（030 / EJS） | 现有条件绑定 |
-|--|-------------------------|--------------|
-| 结构 | 1 条目内 `if/else` + `getvar('stat_data.xxx')` | N 条目 enable/disable |
-| 切换 | 渲染时只输出当前阶段块 | 物理只留一条开着 |
-| 条目 | 通常一直 enabled | 随条件 true/false |
-
-**三种工作模式（均已确认）**
-
-| 模式 | 代号 | 场景 | 行为 |
-|------|------|------|------|
-| **A · 伴生** | `companion` | **存量卡最多** | 不开关宿主 EJS 条目；扫描 + 诊断 + `injectPrompts` 阶段 token；边沿动作作用于卫星条目 / flag / toast |
-| **B · 拆分** | `split` | 单独拆某一阶段 | 从梯子生成/绑定独立条目 + 自动条件规则（默认「持续生效」） |
-| **C · 创作** | `authoring` | 写新卡 | UI 填阶段 → 生成 030 风格 YAML/EJS 正文 + 梯子配置；可选同时生成 satellite 规则 |
-
-**阶段梯子数据结构（规划）**
-
-```ts
-// schema.ts 待增
-StageLadderSchema = {
-  id: string,
-  mode: 'companion' | 'split' | 'authoring',
-  scope: 'character' | 'chat',           // 同条件绑定
-  variable_path: string,                 // 如 沈白露.好感度
-  host_entry_uid: number | null,         // 模式 A/C：EJS 宿主；B 可为 null
-  stages: Array<{
-    name: string,                        // 四字阶段名
-    min: number | null,                  // null = -∞
-    max: number | null,                  // null = +∞；末档可仅行为指导
-    // 模式 C 可选
-    behavior_guidance?: string[],
-    change_tendency?: string[],
-    // 卫星 / 边沿
-    satellite_enable_uids?: number[],
-    satellite_disable_uids?: number[],
-    satellite_trigger?: 'level' | 'rising' | 'falling',
-    edge_actions?: EdgeAction[],         // toast / set_flag / inject_prompt …
-  }>,
-  inject_prompt_id?: string,             // injectPrompts 稳定 id
-  inject_token_template?: string,        // 如 {{name}}阶段={{stageName}}
-  priority?: number,
-}
+```javascript
+wbSqTogglePrefix('现代_')
 ```
 
-**从世界书反解析（模式 A 入口）**
-
-扫描 primary 世界书条目 content，识别：
-
-- `角色阶段:` / `associated_variable` / `getvar('stat_data…')` / `get_message_variable::`
-- `<%_ if (getvar(...) < N)` 链 → 提取阶段名与阈值
-- 可选读取 `stage_names_overview`
-
-**与 030 模板对齐**
-
-- 宿主 EJS 条目：保证「单阶段可见」，拓展 **不** 对其 enable/disable
-- 边沿 / 卫星 / injectPrompts：负责跨阶段通知、其它条目、绿灯关键字
-
-### 三、触发时机 UI 文案（前端必须可读）
-
-存储枚举：`level` | `rising` | `falling`。界面 **主标签用中文**，术语作副标题。
-
-| 存储值 | 界面主标签 | 副标题（可选） | 说明摘要 |
-|--------|------------|----------------|----------|
-| `level` | **持续生效** | 电平 | 条件为真期间一直生效；变假则撤销（现有条件绑定默认行为） |
-| `rising` | **刚达到时** | 上升沿 | 从不满足→满足触发 **一次**；需先离开再进入才会再触发 |
-| `falling` | **刚离开时** | 下降沿 | 从满足→不满足触发 **一次**；多用于降级 / 回退剧情 |
-
-**面板内固定举例（好感 35，阶段「温柔伪装」[20, 50)）**
-
-- 持续生效：卫星条目「文风-温柔」一直开着，掉到 18 关回去
-- 刚达到时：19→21 时 toast / 写 `$flag` **一次**，21→45 不重复
-- 刚离开时：21→19 时触发「离开阶段」动作 **一次**
-
-**折叠比喻（「了解更多」）**
-
-> 阶段 = 房间。持续生效 = 在房间里灯一直亮；刚达到时 = 进门铃响一次；刚离开时 = 出门响一次。  
-> EJS 主条目 = 房间装修随所在房间自动换，不用开关。
-
-**默认策略**
-
-- 模式 A 宿主：**仅诊断**（无触发模式）
-- 卫星条目 / injectPrompts：**持续生效**
-- 边沿动作：**刚达到时** / **刚离开时** 可配
-
-### 四、面板结构（规划）
-
-```
-条件绑定 Tab
-├── 条目开关          ← trigger_mode + 实时诊断 + priority + 冲突提示
-├── 阶段 / 变量 Tab   ← 扫描 / 填值 / overview·EJS 编辑 / 新增蓝灯条目
-└── 模板库            ← Phase 6：030 五档、好感分档 …
-```
-
-独立脚本导出：`STAGE_LADDERS` JSON 与 `CONDITIONAL_BINDINGS` 并列；聊天级梯子存聊天变量（同条件绑定）。
+选开局阶段是否禁用前缀切换，可在面板相关选项中控制（默认偏安全：未开局时禁用）。
 
 ---
 
-## 实现路线图（分步写代码）
+### 3. 条件绑定（MVU）
 
-按依赖顺序拆分 PR /  commit，每步可单独验收。
+当 MVU 变量满足条件时，额外开启/关闭指定世界书条目。
 
-### Phase 0 · 基础类型与文档 ✅
+**怎么配：**
 
-- [x] 需求整理写入本 README
-- [x] `schema.ts`：预留 `StageLadderSchema`、`trigger_mode`、`EdgeActionSchema`、`stage_ladders`
+1. **条件绑定** Tab → **重新扫描** MVU 字段（Zod 脚本 / 当前 `stat_data`）
+2. **添加条件** → 选作用范围：
+   - **全角色卡**：写入角色配置，导出后对方可用独立脚本（需 MVU）
+   - **仅该聊天**：只存在当前聊天变量，**不进**独立脚本
+3. 可视化规则：选变量、比较符、值（支持 AND / OR）
+   - 比较符含：**存在**、**介于**（填 `20,50`）、**包含**；值以 `@另一字段` 开头可字段间比较
+4. 勾选条目动作：**满足时开启** / **满足时关闭**
+5. **触发时机**：持续生效 / 刚达到时 / 刚离开时；可配边沿动作（toast / flag / inject）
+6. **优先级**：多规则命中同一 UID 时，数字大者生效；冲突会在列表上方标红
+7. 可选：限定仅在某个 Swipe 索引生效（或全部 Swipe）
+8. 点 **保存规则**
 
-### Phase 1 · 实时诊断（需求 1）✅
+手写表达式可用：`getStat` / `getStatOld` / `delta` / `hasKey('路径')` / `len('路径')` / `stageOf('entry-uid')`。
 
-**目标**：不改运行时行为，只增强可观测性。
+变量路径与 JSON Patch 一致：`/人名/好感度` → 字段 `人名.好感度`。
+运行时会监听 MVU `VARIABLE_UPDATE_ENDED`，变量更新后自动重算。
 
-| 文件 | 工作 | 状态 |
-|------|------|------|
-| `lib/conditions.ts` | `evaluateBindingConditionDetailed()` 返回每条 rule 的 actual / pass | ✅ |
-| `lib/conditional-apply.ts` | 导出 `previewConditionalBindings()` 只读 diff | ✅ |
-| `App.vue` | 条件卡片：当前值、✓/✗、触发时机选择、刷新诊断 | ✅ |
-| `components/TriggerModeHelp.vue` | 触发时机说明组件 | ✅ |
+**分阶段宿主条目**（单条目 EJS 分阶段正文）**不会**被条件绑定开关；面板会自动跳过并在底部提示。
 
-**验收**：编辑条件时可见实时满足状态；保存仍走现有 apply。边沿触发 runtime 见 Phase 2。
-
-### Phase 2 · 触发时机 runtime（需求 2 + 9 部分） ✅
-
-**目标**：条件绑定与阶段边沿动作支持 level / rising / falling。
-
-| 文件 | 工作 | 状态 |
-|------|------|------|
-| `schema.ts` | `ConditionalBindingSchema` 增 `trigger_mode`、可选 `edge_actions` | ✅ |
-| `lib/mvu-stat-data.ts` | `readMvuStatDataFromMessage(id)`；快照 `last_stat_snapshot` 到聊天变量 | ✅ |
-| `lib/conditional-handler.ts` | `VARIABLE_UPDATE_ENDED` 传入 `(new, old)`，更新快照 | ✅ |
-| `lib/conditions.ts` | `getStatOld`、`delta`；边沿 eval | ✅ |
-| `lib/conditional-apply.ts` | rising/falling 边沿逻辑；`edge_ran` 报告 | ✅ |
-| `lib/trigger-mode.ts` + test | `shouldApply*` / `shouldRunEdgeActions` | ✅ |
-| `lib/edge-actions.ts` | toast / set_flag / inject_prompt | ✅ |
-| `App.vue` | 边沿动作编辑；诊断 `would_apply` / 上一帧状态 | ✅ |
-| `lib/standalone-conditional-script.ts` | 同步 trigger + edge_actions | ✅ |
-
-**验收**：配置「刚达到时 + toast」仅在首次进入条件时提示；持续生效行为与现网一致。
-
-### Phase 3 · 阶段扫描与模式 A（需求 1 + 15 + 030 融合） ✅
-
-**目标**：存量 EJS 分阶段卡零迁移可用；**变量可视化** + 世界书条目内编辑。
-
-| 文件 | 工作 | 状态 |
-|------|------|------|
-| `lib/stage-ladder-parse.ts` + test | overview 与 EJS 合并；区间诊断与修复建议 | ✅ |
-| `lib/stage-ejs-extract.ts` | 展开阶段正文 / 条件（按 block 索引） | ✅ |
-| `lib/stage-overview-edit.ts` | overview 行 / EJS 条件写回；可选重命名阶段 | ✅ |
-| `lib/stage-entry-create.ts` | 新增蓝灯分阶段条目（精简 EJS 模板） | ✅ |
-| `lib/stage-interval-diagnose.ts`（合入 parse） | 空隙 / 重叠 / overview-EJS 不一致建议 | ✅ |
-| `lib/initvar-block.ts` | 读写开场白 `<initvar>` YAML | ✅ |
-| `lib/variable-playground.ts` | 开场白 vs 最新楼层双模式 | ✅ |
-| `components/VariablePlayground.vue` | 全部变量；有 overview 才显示 overview 编辑；逐阶段展开 | ✅ |
-| `components/StageEntryWizard.vue` | 点击「新增 EJS 阶段」才显示；多变量、多阶段 | ✅ |
-| `lib/stage-ladder-handler.ts` | 无 saved config 时直接扫世界书 inject | ✅ |
-
-**验收**：030+overview 混排（如蛇类本能）可解析；无 overview 条目只改 EJS；保存 initvar 保持当前 Swipe；新增条目为蓝灯 constant。
-
-### Phase 4 · 优先级与冲突（需求 5） ✅
-
-| 文件 | 工作 | 状态 |
-|------|------|------|
-| `lib/conditional-conflicts.ts` + test | 按 priority 合并 UID 变更；`collectStageHostUids` | ✅ |
-| `lib/conditional-apply.ts` | apply / preview 使用 priority 合并；输出 `conflicts[]` | ✅ |
-| `App.vue` | 优先级字段；冲突标红列表；跳过宿主提示 | ✅ |
-
-**验收**：两条规则对同一 UID 一开一关时，面板顶部显示冲突，运行时按 priority 大者生效；分阶段宿主 UID 不被条件绑定改动。
-
-### Phase 5 · 表达式与嵌套条件（需求 9、10） ✅（核心）
-
-| 文件 | 工作 | 状态 |
-|------|------|------|
-| `lib/condition-expr-context.ts` | `hasKey`、`len`、`stageOf` / `stageIndex` | ✅ |
-| `lib/conditions.ts` | 表达式注入扩展 API | ✅ |
-| `lib/condition-builder.ts` + test | `exists` / `between` / `contains`；`@字段` 间比较 | ✅ |
-| `schema.ts` | 扩展 `ConditionOperatorSchema` | ✅ |
-| `App.vue` | between 输入提示；表达式 placeholder | ✅ |
-
-**验收**：手写表达式可调用 `stageOf('entry-123')`；可视化规则可选「存在」「介于」「包含」；字段间比较用 `@另一字段` 作值。
-
-**未做（留 Phase 6+）**：`stageCrossed`、完整模板库、模式 B/C 拆分与 030 YAML 导出向导。
-
-### Phase 6 · 模板库（需求 11）
-
-| 文件 | 工作 |
-|------|------|
-| `lib/stage-templates.ts` | 030 五档、好感分档、flag 模板 |
-| `App.vue` | 模板库 Tab / 弹窗；一键插入 ladder 或 conditional |
-
-### Phase 7 · 模式 C 创作向导
-
-| 文件 | 工作 |
-|------|------|
-| `lib/stage-ladder-generate.ts` | 030 YAML/EJS 正文生成 |
-| `App.vue` | 表单向导 → 预览 → 写入世界书条目（`updateWorldbookWith`） |
-
-### Phase 8 · 模式 B 拆分
-
-| 文件 | 工作 |
-|------|------|
-| `lib/stage-ladder-split.ts` | 单阶段拆条目 + 自动生成 conditional_bindings |
-| `App.vue` | 阶段行「拆分为独立条目」操作 |
-
-### Phase 9 · 轮询兜底 + 独立脚本对齐（需求 12）
-
-| 文件 | 工作 |
-|------|------|
-| `lib/conditional-handler.ts` | 拓展侧 debounce + 低频 poll |
-| `lib/standalone-conditional-script.ts` | 导出 STAGE_LADDERS + stage 边沿 |
-| `settings.ts` / `persistToCharacter` | 持久化 ladders |
-
-### Phase 10 · Schema 持续校验（需求 15）
-
-| 文件 | 工作 |
-|------|------|
-| `lib/stage-ladder-validate.ts` | 缺口 / 重叠 / 字段不存在 |
-| `App.vue` | 保存 / 扫描时集中展示 warnings |
+每条规则卡片有 **实时诊断**：当前变量值、✓/✗、边沿触发是否会应用条目动作。
 
 ---
 
-## UI 设计规范
+### 4. 阶段 / 变量（EJS 分阶段 · 模式 A 伴生）
 
-### 布局（移动优先）
+对接写卡常见的 **单条目 EJS 分阶段**（`getvar('stat_data.xxx')` + `if/else if`）。**不改宿主条目开关**，只做扫描、填值试阶段、编辑阈值并写回世界书。
 
-| 端 | 行为 |
-|----|------|
-| 手机 `<768px` | `#wb-sq-modal` 底部抽屉，`92dvh` 高；底部 Tab；安全区 `env(safe-area-inset-bottom)` |
-| 桌面 `≥768px` | 居中模态，`max-width: 56rem`；抓取页双栏网格 |
+**怎么配：**
 
-### 日间 / 夜间
+1. 打开 **阶段 / 变量** Tab → **重新加载** / **扫描世界书阶段**（仅扫描**已开启**条目）
+2. 在条目卡片中 **填值** 或 **选阶段**，看当前命中哪一档
+3. 点击阶段行 **展开**：
+   - 有 `stage_names_overview` 的条目：可编辑 **overview 行**（`- 阶段名 (范围)`）
+   - 无 overview 的条目：只显示阶段名 + min/max + EJS 条件
+   - 修改后 **保存到世界书条目**（overview / EJS 同步写入）
+4. 区间有误时标红，并给出小字修复建议（overview 与 EJS 不一致、阶段间空隙/重叠等）
+5. **全部变量** 区可编辑 initvar（开场白）或最新楼层 `stat_data` JSON
 
-- Header 切换：**跟随酒馆 / 日间 / 夜间**
-- Design tokens：`--wb-bg`、`--wb-surface`、`--wb-accent`（Teal `#0d9488` / `#2dd4bf`）
+**新增 EJS 分阶段条目：**
 
-### 入口
+1. 点 **新增 EJS 阶段**（默认隐藏，点击后才展开向导）
+2. 勾选一个或多个 **数值变量**
+3. 添加若干阶段（阶段名 + 阈值范围 + 行为指导，每行一条）
+4. **保存到世界书** → 创建 **蓝灯 🔵**（constant）已启用条目，正文为精简 EJS 链（无 overview、无预设描述，行为指导留空则写入占位）
 
-- 扩展菜单 `#extensionsMenu` → **世界书编排器**
-- 0 楼 `.mes_buttons` → `fa-layer-group`
-
-样式定义见 [`style.scss`](./style.scss)。
-
----
-
-## 源码结构
-
-```
-src/世界书Swipe与QR切换/
-├── index.ts
-├── App.vue
-├── schema.ts / settings.ts
-├── components/
-│   ├── EntryActionMultiSelect.vue
-│   ├── UidMultiSelect.vue
-│   ├── TriggerModeHelp.vue
-│   ├── VariablePlayground.vue    # Phase 3 阶段/变量
-│   └── StageEntryWizard.vue      # Phase 3 新增 EJS 条目
-└── lib/
-    ├── conditional-*.ts         # 条件绑定 + Phase 4 冲突
-    ├── condition-expr-context.ts # Phase 5 表达式
-    ├── mvu-*.ts                 # MVU 扫描 / 读值
-    ├── stage-ladder-*.ts        # 阶段梯子 / overview 编辑
-    ├── stage-entry-create.ts    # 新增蓝灯条目
-    └── worldbook-ops.ts
-```
+EJS 宿主条目的正文切换 **不需要** 开关该条目；本 Tab 负责诊断、试值、改阈值与创作新条目。
 
 ---
 
-## 参考文档
+### 5. 导出与独立运行（可不装拓展）
 
-| 文档 | 用途 |
+点 **导出到角色卡** 或 **同步分组** 后，角色卡会包含：
+
+| 内容 | 说明 |
 |------|------|
-| [`写卡/zod/脚本变量.md`](../../写卡/zod/脚本变量.md) | MVU 事件、`injectPrompts`、old/new 变量 |
-| [`写卡/zod/030-🔧 MVU-4.1.分阶段角色设定.txt`](../../写卡/zod/030-🔧 MVU-4.1.分阶段角色设定.txt) | 单条目分阶段 prompt 模板 |
-| `@types/iframe/exported.mvu.d.ts` | MVU API |
+| `character.extensions.worldbook_swipe_qr_switch` | 完整配置（Swipe / 分组 / QR 策略 / 条件等） |
+| 脚本「世界书前缀按钮」 | Swipe 开合 + 分组按钮（需酒馆助手） |
+| 脚本「世界书条件绑定」 | 仅「全角色卡」条件（需酒馆助手 + MVU） |
+
+若本机已装本拓展，检测到独立脚本在跑时会让路，避免双重开合 / 双重 toast。
 
 ---
 
-## 与旧脚本的关系
+## 条目命名建议
 
-[`基于前缀自动开合世界书条目`](../基于前缀自动开合世界书条目/index.js) 为前身。迁移后请停用旧脚本。
+- **前缀模式**：`前缀_其余`，如 `现代_人设`、`古代_文风`
+- **提取模式**：名称里包含关键词即可，如任意位置的「人设」
+- 避免纯数字当组名（会被过滤，常与 Swipe 索引混淆）
 
 ---
 
-*文档版本：拓展 vNext 规划 · 2026-07-26*
+## 本仓库文件
+
+| 文件 | 说明 |
+|------|------|
+| `manifest.json` | SillyTavern 扩展清单 |
+| `bootstrap.js` | 扩展入口、生命周期 |
+| `index.js` | 打包后的功能 bundle |
+| `changelog.json` | 版本更新说明 |
+| `README.md` | 本说明 |
+
+源码在 monorepo 的 `src/世界书Swipe与QR切换/`，不会被 ST 直接执行。
+
+---
+
+## 卸载
+
+在扩展列表删除本拓展即可清理 DOM。
+角色卡上已导出的独立脚本不会自动删除，可按需在角色卡脚本里手动删掉「世界书前缀按钮」「世界书条件绑定」。
+
+---
+
+*文档对应拓展功能 · 2026-07-26 · 含阶段/变量 Tab、条件冲突与表达式扩展*
