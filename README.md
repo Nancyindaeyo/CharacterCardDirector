@@ -1,4 +1,4 @@
-# WorldbookDirector（世界书编排器）
+# WorldbookDirector
 
 > **形态**：SillyTavern **拓展**（非酒馆助手脚本）  
 > **发布目录**：[`WorldbookDirector/`](../../WorldbookDirector/)  
