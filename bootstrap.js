@@ -10,11 +10,11 @@ function getExtensionFolder() {
   } catch {
     /* ignore */
   }
-  return 'WorldbookSwipeQrSwitch';
+  return 'WorldbookDirector';
 }
 
 const EXT_FOLDER = getExtensionFolder();
-const EXT_NAME = '世界书Swipe与QR切换';
+const EXT_NAME = '世界书编排器';
 const CLEANUP_KEY = '__wbSwipeQrCleanup';
 const INIT_DONE_KEY = '__wbSwipeQrInitDone';
 const MAX_ATTEMPTS = 60;
@@ -118,7 +118,7 @@ function cleanupExtensionDom() {
     try {
       cleanup();
     } catch (e) {
-      console.warn('[世界书Swipe与QR] cleanup 失败', e);
+      console.warn('[WorldbookDirector] cleanup 失败', e);
     }
   }
   delete window[CLEANUP_KEY];
@@ -136,10 +136,10 @@ async function loadAndInit() {
     if (typeof mod.installTavernHelperGlobals === 'function') {
       mod.installTavernHelperGlobals();
     }
-    if (typeof mod.initWorldbookSwipeQr !== 'function') {
-      throw new Error('index.js 缺少 initWorldbookSwipeQr');
+    if (typeof mod.initWorldbookDirector !== 'function') {
+      throw new Error('index.js 缺少 initWorldbookDirector');
     }
-    mod.initWorldbookSwipeQr({ extensionId: EXT_FOLDER });
+    mod.initWorldbookDirector({ extensionId: EXT_FOLDER });
     window[INIT_DONE_KEY] = true;
   } finally {
     loading = false;
@@ -148,8 +148,8 @@ async function loadAndInit() {
 
 function onTavernHelperReady() {
   loadAndInit().catch(e => {
-    console.error('[世界书Swipe与QR] 加载失败', e);
-    toastr.error('世界书 Swipe 与 QR 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
+    console.error('[WorldbookDirector] 加载失败', e);
+    toastr.error('WorldbookDirector 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
   });
 }
 
