@@ -1,4 +1,4 @@
-# 世界书 Swipe 与 QR 切换
+# WorldbookDirector
 
 SillyTavern 拓展：按**开场白 Swipe** 自动开合 primary 世界书条目；用**脚本按钮 / QR** 中途切换分组；支持 **MVU 条件绑定**；配置可写入角色卡，分享 PNG/JSON 后对方可不装本拓展也能用。
 
