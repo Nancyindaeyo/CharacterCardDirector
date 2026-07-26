@@ -125,12 +125,7 @@ function startReturnDirectoryButtonWatcher() {
 function stopReturnDirectoryButtonWatcher() {
   if (return_btn_timer) clearInterval(return_btn_timer);
   return_btn_timer = null;
-  try {
-    const ctx = findChatPage();
-    if (ctx) ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
-  } catch {
-    /* ignore */
-  }
+  // 不删除返回目录按钮：角色卡独立脚本可能仍在运行，由脚本自行维护
 }
 
 /** @returns {Record<string, Function> | null} */
