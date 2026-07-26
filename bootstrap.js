@@ -10,11 +10,11 @@ function getExtensionFolder() {
   } catch {
     /* ignore */
   }
-  return 'WorldbookDirector';
+  return 'CharacterCardDirector';
 }
 
 const EXT_FOLDER = getExtensionFolder();
-const EXT_NAME = '世界书编排器';
+const EXT_NAME = '角色卡编排器';
 const CLEANUP_KEY = '__wbSwipeQrCleanup';
 const INIT_DONE_KEY = '__wbSwipeQrInitDone';
 const RETURN_BTN_CLASS = 'wb-sq-return-directory-mes';
@@ -232,7 +232,7 @@ function cleanupExtensionDom() {
     try {
       cleanup();
     } catch (e) {
-      console.warn('[WorldbookDirector] cleanup 失败', e);
+      console.warn('[CharacterCardDirector] cleanup 失败', e);
     }
   }
   delete window[CLEANUP_KEY];
@@ -264,8 +264,8 @@ function onTavernHelperReady() {
   installThGlobalsOnWindow();
   startReturnDirectoryButtonWatcher();
   loadAndInit().catch(e => {
-    console.error('[WorldbookDirector] 加载失败', e);
-    toastr.error('WorldbookDirector 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
+    console.error('[CharacterCardDirector] 加载失败', e);
+    toastr.error('CharacterCardDirector 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
   });
 }
 
