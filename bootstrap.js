@@ -88,8 +88,9 @@ function syncReturnDirectoryButtonBootstrap() {
   ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
   ctx
     .$('<div>')
-    .addClass(`${RETURN_BTN_CLASS} mes_button interactable fa-solid fa-list`)
+    .addClass(`${RETURN_BTN_CLASS} mes_button interactable`)
     .attr({ title: '返回开场白目录', tabindex: '0', role: 'button' })
+    .append(ctx.$('<i>').addClass('fa-solid fa-list'))
     .on('click', event => {
       event.preventDefault();
       event.stopPropagation();
@@ -220,7 +221,6 @@ function cleanupExtensionDom() {
   jQuery(
     '#wb-sq-modal, #wb-sq-style, #wb-sq-ext-menu-btn, #wb-sq-prefix-bar, .wb-sq-prefix-bar, .wb-sq-mes-btn',
   ).remove();
-  stopReturnDirectoryButtonWatcher();
 
   const cleanup = window[CLEANUP_KEY];
   if (typeof cleanup === 'function') {
@@ -232,6 +232,13 @@ function cleanupExtensionDom() {
   }
   delete window[CLEANUP_KEY];
   delete window[INIT_DONE_KEY];
+}
+
+function cleanupExtensionDomFully() {
+  cleanupExtensionDom();
+  stopReturnDirectoryButtonWatcher();
+  const ctx = findChatPage();
+  if (ctx) ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
 }
 
 let loading = false;
@@ -277,11 +284,13 @@ function waitForTavernHelper(attempt = 0) {
 }
 
 export async function onDelete() {
-  cleanupExtensionDom();
+  cleanupExtensionDomFully();
 }
 
 export async function onDisable() {
   cleanupExtensionDom();
+  // 拓展 UI 关闭后仍保留返回目录按钮兜底（角色卡独立脚本未启用时）
+  startReturnDirectoryButtonWatcher();
 }
 
 export async function onEnable() {
