@@ -17,8 +17,98 @@ const EXT_FOLDER = getExtensionFolder();
 const EXT_NAME = '世界书编排器';
 const CLEANUP_KEY = '__wbSwipeQrCleanup';
 const INIT_DONE_KEY = '__wbSwipeQrInitDone';
+const RETURN_BTN_CLASS = 'wb-sq-return-directory-mes';
+const DIRECTORY_SENTINEL = '<!--WB_SQ_OPENING_DIRECTORY v1-->';
+const EXT_KEY = 'worldbook_swipe_qr_switch';
 const MAX_ATTEMPTS = 60;
 const RETRY_MS = 500;
+
+/** @type {ReturnType<typeof setInterval> | null} */
+let return_btn_timer = null;
+
+function findChatPage() {
+  for (const win of [window, window.parent, window.top].filter(Boolean)) {
+    try {
+      const $ = win.jQuery || win.$;
+      if ($ && win.document?.querySelector('#chat')) {
+        return { win, $, doc: win.document };
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+function syncReturnDirectoryButtonBootstrap() {
+  if (typeof window.__wbSqSyncReturnDirectory === 'function') {
+    window.__wbSqSyncReturnDirectory();
+    return;
+  }
+
+  const ctx = findChatPage();
+  if (!ctx) return;
+
+  const getChatMessagesFn = typeof getChatMessages === 'function' ? getChatMessages : ctx.win.getChatMessages;
+  const getCharDataFn = typeof getCharData === 'function' ? getCharData : ctx.win.getCharData;
+  const setChatMessagesFn = typeof setChatMessages === 'function' ? setChatMessages : ctx.win.setChatMessages;
+  if (typeof getChatMessagesFn !== 'function' || typeof setChatMessagesFn !== 'function') return;
+
+  ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
+
+  const msg0 = getChatMessagesFn(0, { include_swipes: true })?.[0];
+  if (!msg0 || (msg0.swipe_id ?? 0) <= 0) return;
+
+  let enabled = false;
+  try {
+    const data = typeof getCharDataFn === 'function' ? getCharDataFn('current') : null;
+    if (data?.data?.extensions?.[EXT_KEY]?.opening_directory?.enabled === true) enabled = true;
+    if (data?.first_mes && String(data.first_mes).includes(DIRECTORY_SENTINEL)) enabled = true;
+  } catch {
+    /* ignore */
+  }
+  if (!enabled) {
+    for (const text of msg0.swipes ?? []) {
+      if (String(text || '').includes(DIRECTORY_SENTINEL)) {
+        enabled = true;
+        break;
+      }
+    }
+  }
+  if (!enabled) return;
+
+  const $edit = ctx.$('#chat .mes[mesid="0"] .mes_edit', ctx.doc).first();
+  if (!$edit.length || $edit.next(`.${RETURN_BTN_CLASS}`).length) return;
+
+  ctx
+    .$('<div>')
+    .addClass(`${RETURN_BTN_CLASS} mes_button interactable fa-solid fa-list`)
+    .attr({ title: '返回开场白目录', tabindex: '0', role: 'button' })
+    .on('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      Promise.resolve(setChatMessagesFn([{ message_id: 0, swipe_id: 0 }], { refresh: 'all' }));
+    })
+    .insertAfter($edit);
+}
+
+function startReturnDirectoryButtonWatcher() {
+  if (return_btn_timer) clearInterval(return_btn_timer);
+  syncReturnDirectoryButtonBootstrap();
+  return_btn_timer = setInterval(syncReturnDirectoryButtonBootstrap, 500);
+}
+
+function stopReturnDirectoryButtonWatcher() {
+  if (return_btn_timer) clearInterval(return_btn_timer);
+  return_btn_timer = null;
+  try {
+    const ctx = findChatPage();
+    if (ctx) ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
+  } catch {
+    /* ignore */
+  }
+}
 
 /** @returns {Record<string, Function> | null} */
 function getTavernHelper() {
@@ -112,6 +202,7 @@ function cleanupExtensionDom() {
   jQuery(
     '#wb-sq-modal, #wb-sq-style, #wb-sq-ext-menu-btn, #wb-sq-prefix-bar, .wb-sq-prefix-bar, .wb-sq-mes-btn',
   ).remove();
+  stopReturnDirectoryButtonWatcher();
 
   const cleanup = window[CLEANUP_KEY];
   if (typeof cleanup === 'function') {
@@ -147,6 +238,8 @@ async function loadAndInit() {
 }
 
 function onTavernHelperReady() {
+  installThGlobalsOnWindow();
+  startReturnDirectoryButtonWatcher();
   loadAndInit().catch(e => {
     console.error('[WorldbookDirector] 加载失败', e);
     toastr.error('WorldbookDirector 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
