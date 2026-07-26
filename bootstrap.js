@@ -43,21 +43,22 @@ function findChatPage() {
 function syncReturnDirectoryButtonBootstrap() {
   if (typeof window.__wbSqSyncReturnDirectory === 'function') {
     window.__wbSqSyncReturnDirectory();
-    return;
+    return true;
   }
 
   const ctx = findChatPage();
-  if (!ctx) return;
+  if (!ctx) return false;
 
   const getChatMessagesFn = typeof getChatMessages === 'function' ? getChatMessages : ctx.win.getChatMessages;
   const getCharDataFn = typeof getCharData === 'function' ? getCharData : ctx.win.getCharData;
   const setChatMessagesFn = typeof setChatMessages === 'function' ? setChatMessages : ctx.win.setChatMessages;
-  if (typeof getChatMessagesFn !== 'function' || typeof setChatMessagesFn !== 'function') return;
-
-  ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
+  if (typeof getChatMessagesFn !== 'function' || typeof setChatMessagesFn !== 'function') return false;
 
   const msg0 = getChatMessagesFn(0, { include_swipes: true })?.[0];
-  if (!msg0 || (msg0.swipe_id ?? 0) <= 0) return;
+  if (!msg0 || (msg0.swipe_id ?? 0) <= 0) {
+    ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
+    return false;
+  }
 
   let enabled = false;
   try {
@@ -75,11 +76,16 @@ function syncReturnDirectoryButtonBootstrap() {
       }
     }
   }
-  if (!enabled) return;
+  if (!enabled) {
+    ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
+    return false;
+  }
 
   const $edit = ctx.$('#chat .mes[mesid="0"] .mes_edit', ctx.doc).first();
-  if (!$edit.length || $edit.next(`.${RETURN_BTN_CLASS}`).length) return;
+  if (!$edit.length) return false;
+  if ($edit.next(`.${RETURN_BTN_CLASS}`).length) return true;
 
+  ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
   ctx
     .$('<div>')
     .addClass(`${RETURN_BTN_CLASS} mes_button interactable fa-solid fa-list`)
@@ -88,15 +94,32 @@ function syncReturnDirectoryButtonBootstrap() {
       event.preventDefault();
       event.stopPropagation();
       event.stopImmediatePropagation();
-      Promise.resolve(setChatMessagesFn([{ message_id: 0, swipe_id: 0 }], { refresh: 'all' }));
+      Promise.resolve(setChatMessagesFn([{ message_id: 0, swipe_id: 0 }], { refresh: 'affected' }));
     })
     .insertAfter($edit);
+  return true;
 }
 
 function startReturnDirectoryButtonWatcher() {
   if (return_btn_timer) clearInterval(return_btn_timer);
+  if (window[INIT_DONE_KEY]) {
+    if (typeof window.__wbSqSyncReturnDirectory === 'function') {
+      window.__wbSqSyncReturnDirectory();
+    }
+    return;
+  }
   syncReturnDirectoryButtonBootstrap();
-  return_btn_timer = setInterval(syncReturnDirectoryButtonBootstrap, 500);
+  return_btn_timer = setInterval(() => {
+    if (window[INIT_DONE_KEY] || typeof window.__wbSqSyncReturnDirectory === 'function') {
+      clearInterval(return_btn_timer);
+      return_btn_timer = null;
+      if (typeof window.__wbSqSyncReturnDirectory === 'function') {
+        window.__wbSqSyncReturnDirectory();
+      }
+      return;
+    }
+    syncReturnDirectoryButtonBootstrap();
+  }, 1500);
 }
 
 function stopReturnDirectoryButtonWatcher() {
