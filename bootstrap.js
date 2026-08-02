@@ -276,7 +276,11 @@ function onTavernHelperReady() {
   startReturnDirectoryButtonWatcher();
   loadAndInit().catch(e => {
     console.error('[CharacterCardDirector] 加载失败', e);
-    toastr.error('CharacterCardDirector 拓展加载失败，请确认已启用酒馆助手并刷新页面', EXT_NAME);
+    const detail = e instanceof Error ? e.message : String(e ?? '未知错误');
+    toastr.error(
+      `角色卡编排器加载失败：${detail}。若已启用酒馆助手仍失败，请刷新或重新安装本拓展。`,
+      EXT_NAME,
+    );
   });
 }
 
