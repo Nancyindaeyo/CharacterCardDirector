@@ -60,23 +60,28 @@ function syncReturnDirectoryButtonBootstrap() {
     return false;
   }
 
-  let enabled = false;
+  let directory_enabled = false;
+  let has_bindings = false;
   try {
     const data = typeof getCharDataFn === 'function' ? getCharDataFn('current') : null;
-    if (data?.data?.extensions?.[EXT_KEY]?.opening_directory?.enabled === true) enabled = true;
-    if (data?.first_mes && String(data.first_mes).includes(DIRECTORY_SENTINEL)) enabled = true;
+    const ext = data?.data?.extensions?.[EXT_KEY] || data?.extensions?.[EXT_KEY];
+    if (ext?.opening_directory?.enabled === true) directory_enabled = true;
+    if (data?.first_mes && String(data.first_mes).includes(DIRECTORY_SENTINEL)) directory_enabled = true;
+    const bindings = ext?.swipe_bindings || {};
+    const rules = ext?.swipe_prefix_rules || {};
+    if (Object.keys(bindings).length > 0 || Object.keys(rules).length > 0) has_bindings = true;
   } catch {
     /* ignore */
   }
-  if (!enabled) {
+  if (!directory_enabled) {
     for (const text of msg0.swipes ?? []) {
       if (String(text || '').includes(DIRECTORY_SENTINEL)) {
-        enabled = true;
+        directory_enabled = true;
         break;
       }
     }
   }
-  if (!enabled) {
+  if (!directory_enabled && !has_bindings) {
     ctx.$(`.${RETURN_BTN_CLASS}`, ctx.doc).remove();
     return false;
   }
@@ -89,7 +94,11 @@ function syncReturnDirectoryButtonBootstrap() {
   ctx
     .$('<div>')
     .addClass(`${RETURN_BTN_CLASS} mes_button interactable`)
-    .attr({ title: '返回开场白目录', tabindex: '0', role: 'button' })
+    .attr({
+      title: directory_enabled ? '返回开场白目录' : '返回第一个开局（Swipe #0）',
+      tabindex: '0',
+      role: 'button',
+    })
     .append(ctx.$('<i>').addClass('fa-solid fa-list'))
     .on('click', event => {
       event.preventDefault();
