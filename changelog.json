@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.1.2",
+    "title": "修复手机端指引点击无效",
+    "sections": [
+      {
+        "title": "修复",
+        "items": [
+          "指引层 Teleport 到面板根节点外，避开 overflow:hidden 导致的 iOS/WebKit 触摸命中失效",
+          "视口变化重测不再强制滚动，避免点「下一步」被 smooth scroll 打断"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.1.1",
     "title": "移动端指引适配",
     "sections": [
