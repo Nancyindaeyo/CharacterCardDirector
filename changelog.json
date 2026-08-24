@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.2.4",
+    "title": "切卡写入与面板启动修复",
+    "sections": [
+      {
+        "title": "修复",
+        "items": [
+          "切卡同步目录改从 getCharData('current') / getContext() 取真实头像，不再误报「当前未加载角色卡」",
+          "修复面板启动时 immediate watcher 访问未初始化变量导致 Cannot access before initialization"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.2.3",
     "title": "按真实头像写入开场白目录",
     "sections": [
