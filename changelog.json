@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.2.6",
+    "title": "添加目录不再写空已有正则",
+    "sections": [
+      {
+        "title": "修复",
+        "items": [
+          "写卡时不再把 getCharacter 的酒馆助手正则格式盖回角色卡，已有正则和角色脚本名称不会被抹掉",
+          "若 1.2.5 已把正则写成 script_name/find_regex，读卡时还原成 scriptName/findRegex，角色卡脚本的 match 不再崩"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.2.5",
     "title": "角色正则缺 placement 时不再崩面板",
     "sections": [
@@ -7,6 +20,7 @@
         "title": "修复",
         "items": [
           "读卡前把角色正则缺的 placement 补成空数组，避免酒馆助手 getCharacter 在 includes 上崩溃",
+          "切卡时优先补 placement，减少角色卡脚本 getTavernRegexes 跟着崩",
           "getCharacter 仍失败时回退 getCharData 读开场白，打开面板不再被坏正则卡住"
         ]
       }
