@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.2.5",
+    "title": "角色正则缺 placement 时不再崩面板",
+    "sections": [
+      {
+        "title": "修复",
+        "items": [
+          "读卡前把角色正则缺的 placement 补成空数组，避免酒馆助手 getCharacter 在 includes 上崩溃",
+          "getCharacter 仍失败时回退 getCharData 读开场白，打开面板不再被坏正则卡住"
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.2.4",
     "title": "切卡写入与面板启动修复",
     "sections": [
